@@ -1,0 +1,6 @@
+(library
+ (inline_tests)
+ (name algorithms)
+ (libraries base core_kernel core)
+ (preprocess
+  (pps ppx_inline_test)))

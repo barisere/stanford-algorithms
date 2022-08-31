@@ -146,3 +146,36 @@ let%test "weighted quickunion" =
     && entries @! 4 = { value = 4; root = 0; size = 2 }
     && entries @! 0 = { value = 0; root = 0; size = 4 })
 ;;
+
+module Social_network_connectivity = struct
+  module Wqu = Weighted_quickunion
+
+  let times =
+    Array.init 10 (fun i -> Core.Time_ns.(add epoch (Span.of_hr @@ float_of_int @@ i)))
+  ;;
+
+  let connections = [| 0, 2; 0, 3; 0, 4; 0, 5; 0, 6; 1, 7; 1, 8; 1, 9; 0, 1; 1, 2 |]
+  let connections = Array.combine times connections
+  let network = Wqu.make connections
+
+  let fully_connected () =
+    Array.for_all (fun (_, (_, i)) -> Wqu.connected 0 i network) connections
+  ;;
+
+  let find_earliest_fully_connected_network () =
+    (* let connection_times = Array.combine times connections in *)
+    Array.find_map
+      (fun (time, (a, b)) ->
+        Wqu.(
+          union a b network;
+          if fully_connected () then Some time else None))
+      connections
+    |> Option.get
+  ;;
+
+  let%test "social network connectivity" =
+    let v = find_earliest_fully_connected_network () in
+    print_endline @@ Core.Time_ns.to_string_utc v;
+    Core.Time_ns.equal times.(8) v
+  ;;
+end

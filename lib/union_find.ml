@@ -147,14 +147,92 @@ let%test "weighted quickunion" =
     && entries @! 0 = { value = 0; root = 0; size = 4 })
 ;;
 
+module Optimised_weighted_quickunion : sig
+  include UF
+
+  type 'a entry =
+    { value : 'a
+    ; root : int
+    ; size : int
+    }
+
+  val ( @! ) : 'a t -> int -> 'a entry
+end = struct
+  type 'a entry =
+    { value : 'a
+    ; root : int
+    ; size : int
+    }
+
+  type 'a t = 'a entry array
+
+  let roots_of r (ta : 'a t) =
+    let acc : int list ref = ref [] in
+    let rec loop r' =
+      let { root; _ } = ta.(r') in
+      acc := r' :: !acc;
+      if root = r' then () else loop root
+    in
+    loop r;
+    !acc
+  ;;
+
+  let make (values : 'a array) : 'a t =
+    Array.mapi (fun i v -> { value = v; root = i; size = 1 }) values
+  ;;
+
+  let union p q (entries : 'a t) =
+    let set_roots root =
+      List.iter (fun v -> entries.(v) <- { (entries.(v)) with root })
+    in
+    let proots, qroots = roots_of p entries, roots_of q entries in
+    let { root = proot; size = psize; _ }, { root = qroot; size = qsize; _ } =
+      entries.(List.hd proots), entries.(List.hd qroots)
+    in
+    if psize >= qsize
+    then (
+      set_roots proot qroots;
+      entries.(proot) <- { (entries.(proot)) with size = psize + qsize })
+    else (
+      set_roots qroot proots;
+      entries.(qroot) <- { (entries.(qroot)) with size = psize + qsize })
+  ;;
+
+  let connected p q entries =
+    List.hd @@ roots_of p entries = List.hd @@ roots_of q entries
+  ;;
+
+  let entry_at (entries : 'a t) pos = entries.(pos)
+  let ( @! ) = entry_at
+end
+
+let%test "optimised weighted quickunion" =
+  Optimised_weighted_quickunion.(
+    let entries = Array.init 10 Fun.id |> make in
+    union 0 9 entries;
+    (* 9 -> 0, |0| = 2, |9| = 1 *)
+    union 2 9 entries;
+    (* 2 -> 0, |2| = 1, |9| = 1, |0| = 3 *)
+    union 6 4 entries;
+    (* 4 -> 6, |6| = 2, |4| = 1 *)
+    union 0 4 entries;
+    (* 6 -> 0, |6| = 2, |0| = 5 *)
+    connected 0 6 entries
+    && entries @! 9 = { value = 9; root = 0; size = 1 }
+    && entries @! 2 = { value = 2; root = 0; size = 1 }
+    && entries @! 6 = { value = 6; root = 0; size = 2 }
+    && entries @! 4 = { value = 4; root = 0; size = 1 }
+    && entries @! 0 = { value = 0; root = 0; size = 5 })
+;;
+
 module Social_network_connectivity = struct
-  module Wqu = Weighted_quickunion
+  module Wqu = Optimised_weighted_quickunion
 
   let times =
     Array.init 10 (fun i -> Core.Time_ns.(add epoch (Span.of_hr @@ float_of_int @@ i)))
   ;;
 
-  let connections = [| 0, 2; 0, 3; 0, 4; 0, 5; 0, 6; 1, 7; 1, 8; 1, 9; 0, 1; 1, 2 |]
+  let connections = [| 0, 2; 2, 3; 3, 4; 4, 5; 5, 6; 1, 0; 7, 8; 8, 9; 0, 9; 1, 2 |]
   let connections = Array.combine times connections
   let network = Wqu.make connections
 

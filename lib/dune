@@ -3,4 +3,4 @@
  (name algorithms)
  (libraries base core_kernel core)
  (preprocess
-  (pps ppx_inline_test)))
+  (pps ppx_deriving.ord ppx_deriving.show ppx_inline_test)))

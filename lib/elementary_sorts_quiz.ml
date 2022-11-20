@@ -32,39 +32,19 @@ module Dutch_national_flag = struct
   ;;
 
   let sort (colours : colour_array) : unit =
-    let size = Array.length colours in
-    let swap_remembering_last_seen idx last_seen_ref =
-      match !last_seen_ref with
-      | a when a < idx ->
-        incr last_seen_ref;
-        swap colours !last_seen_ref (idx + 1)
-      | _ ->
-        swap colours idx (idx + 1);
-        last_seen_ref := idx
-    in
-    let last_red = ref (-1) in
-    let red_pass () =
-      for idx = 0 to size - 2 do
-        match colours.(idx), colours.(idx + 1) with
-        | _, Red -> swap_remembering_last_seen idx last_red
-        | White, _ -> swap colours idx (idx + 1)
-        | _ -> ()
-      done
-    in
-    let last_blue = ref size in
-    let blue_pass () =
-      for idx = !last_red to size - 2 do
-        match colours.(idx), colours.(idx + 1) with
-        | Blue, White -> last_blue := idx
-        | White, Blue -> swap_remembering_last_seen idx last_blue
-        | _ -> ()
-      done
-    in
-    if size = 1
-    then ()
-    else (
-      red_pass ();
-      blue_pass ())
+    let reds : int ref = ref 0 in
+    let blues : int ref = ref 0 in
+    let whites : int ref = ref 0 in
+    Array.iter
+      (function
+       | Red -> incr reds
+       | Blue -> incr blues
+       | White -> incr whites)
+      colours;
+    let colour_seq len colour = Seq.init len (Fun.const colour) in
+    let ( <> ) = Seq.append in
+    let s = colour_seq !reds Red <> colour_seq !blues Blue <> colour_seq !whites White in
+    Seq.iteri (Array.set colours) s
   ;;
 
   let%test "sort is a no-op for a single-element array" =

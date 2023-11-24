@@ -1,4 +1,4 @@
-(lang dune 3.4)
+(lang dune 3.11)
 
 (name algorithms)
 
@@ -19,7 +19,7 @@
  (name algorithms)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml dune)
+ (depends ocaml dune base core core_kernel ordering ppx_deriving (ppx_inline_test :with-test))
  (tags
   (topics "to describe" your project)))
 

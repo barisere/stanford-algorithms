@@ -11,7 +11,13 @@ doc: "https://url/to/documentation"
 bug-reports: "https://github.com/username/reponame/issues"
 depends: [
   "ocaml"
-  "dune" {>= "3.4"}
+  "dune" {>= "3.11"}
+  "base"
+  "core"
+  "core_kernel"
+  "ordering"
+  "ppx_deriving"
+  "ppx_inline_test" {with-test}
   "odoc" {with-doc}
 ]
 build: [
